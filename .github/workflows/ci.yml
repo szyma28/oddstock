@@ -88,7 +88,13 @@ jobs:
             exit 1
           fi
 
-          pnpm test:integration
+          if ! pnpm test:integration; then
+            echo "--- API log ---"
+            cat /tmp/oddstock-api.log
+            echo "--- worker log ---"
+            cat /tmp/oddstock-worker.log
+            exit 1
+          fi
 
       - name: Stop PostgreSQL and Kafka
         if: always()

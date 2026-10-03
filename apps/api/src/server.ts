@@ -154,7 +154,6 @@ app.post("/api/auth/logout", async (req, res, next) => {
 const orderSchema = z.object({ items: z.array(z.object({ productId: z.string(), quantity: z.number().int().min(1).max(10) })).min(1).max(20), demoOutcome: z.enum(["APPROVE", "DECLINE"]).default("APPROVE") });
 app.post("/api/orders", requireUser, async (req: AuthedRequest, res, next) => {
   try {
-    if (!paymentResultsConsumerReady) return res.status(503).json({ error: "Order processing is starting. Please try again shortly." });
     const input = orderSchema.parse(req.body);
     const requested = new Map<string, number>();
     for (const line of input.items) {
