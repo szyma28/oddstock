@@ -19,21 +19,21 @@ jobs:
       WEB_ORIGIN: http://localhost:5173
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+      - name: Set up pnpm and Node.js
+        uses: pnpm/setup@v3
         with:
+          runtime: node@22
           version: 11.19.0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
+          install: false
+          cache: true
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @oddstock/api exec prisma generate
 
       - name: Typecheck
         run: pnpm typecheck
