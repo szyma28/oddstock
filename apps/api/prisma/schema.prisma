@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  sessions     Session[]
+  orders       Order[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Product {
+  id          String      @id
+  name        String
+  category    String
+  description String
+  pricePence  Int
+  palette     String
+  symbol      String
+  createdAt   DateTime    @default(now())
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status      OrderStatus @default(PENDING)
+  totalPence  Int
+  createdAt   DateTime    @default(now())
+  items       OrderItem[]
+  @@index([userId, createdAt])
+}
+
+model OrderItem {
+  id             String  @id @default(cuid())
+  orderId        String
+  order          Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productName    String
+  unitPricePence Int
+  quantity       Int
+}
+
+model OutboxEvent {
+  id          String   @id
+  topic       String
+  eventType   String
+  payload     Json
+  createdAt   DateTime @default(now())
+  publishedAt DateTime?
+  @@index([publishedAt, createdAt])
+}
+
+model ProcessedEvent {
+  eventId     String   @id
+  processedAt DateTime @default(now())
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PAYMENT_DECLINED
+}

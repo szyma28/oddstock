@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://oddstock:oddstock_local_only@localhost:55432/oddstock?schema=public
+      KAFKA_BROKERS: localhost:29092
+      API_PORT: 4000
+      WEB_ORIGIN: http://localhost:5173
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Run unit tests
+        run: pnpm test
+
+      - name: Build applications
+        run: pnpm build
+
+      - name: Start PostgreSQL and Kafka
+        run: pnpm infra:up
+
+      - name: Wait for infrastructure
+        run: |
+          ready=false
+          for attempt in $(seq 1 90); do
+            if docker compose -f infra/compose.yml exec -T postgres pg_isready -U oddstock -d oddstock >/dev/null 2>&1 && \
+              docker compose -f infra/compose.yml exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list 2>/dev/null | grep -qx 'marketplace.orders'; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != true ]; then
+            docker compose -f infra/compose.yml logs
+            exit 1
+          fi
+
+      - name: Create database tables
+        run: pnpm --filter @oddstock/api db:push
+
+      - name: Run Kafka integration tests
+        run: |
+          set -euo pipefail
+          pnpm --filter @oddstock/api dev > /tmp/oddstock-api.log 2>&1 &
+          api_pid=$!
+          pnpm --filter @oddstock/api worker > /tmp/oddstock-worker.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$api_pid" "$worker_pid" 2>/dev/null || true' EXIT
+
+          ready=false
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://localhost:4000/api/ready | grep -q '"ready":true'; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != true ]; then
+            cat /tmp/oddstock-api.log /tmp/oddstock-worker.log
+            exit 1
+          fi
+
+          pnpm test:integration
+
+      - name: Stop PostgreSQL and Kafka
+        if: always()
+        run: pnpm infra:down

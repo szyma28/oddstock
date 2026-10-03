@@ -1,0 +1,16 @@
+{
+  "name": "oddstock-marketplace",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @oddstock/api --filter @oddstock/web dev",
+    "dev:worker": "pnpm --filter @oddstock/api worker",
+    "build": "pnpm --recursive build",
+    "test": "pnpm --filter @oddstock/api test",
+    "test:integration": "pnpm --filter @oddstock/api test:integration",
+    "typecheck": "pnpm --recursive typecheck",
+    "infra:up": "sh infra/docker-compose.sh up -d",
+    "infra:down": "sh infra/docker-compose.sh down"
+  }
+}
