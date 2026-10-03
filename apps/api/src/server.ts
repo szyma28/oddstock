@@ -109,7 +109,18 @@ app.get("/api/metrics", async (_req, res) => {
 
 app.get("/api/products", async (_req, res, next) => {
   try {
-    await Promise.all(products.map((product) => db.product.upsert({ where: { id: product.id }, update: product, create: product })));
+    await Promise.all(products.map((product) => {
+      const storedProduct = {
+        id: product.id,
+        name: product.name,
+        category: product.category,
+        description: product.description,
+        pricePence: product.pricePence,
+        palette: product.palette,
+        symbol: product.symbol,
+      };
+      return db.product.upsert({ where: { id: product.id }, update: storedProduct, create: storedProduct });
+    }));
     res.json(products);
   } catch (error) { next(error); }
 });

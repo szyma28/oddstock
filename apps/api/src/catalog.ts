@@ -6,6 +6,7 @@ export type DemoProduct = {
   pricePence: number;
   palette: string;
   symbol: string;
+  image?: string;
 };
 
 // A tiny seeded generator keeps synthetic listings varied but repeatable between restarts.
@@ -57,6 +58,7 @@ const oddities: DemoProduct[] = [
     pricePence: 350,
     palette: "clay",
     symbol: "⌁",
+    image: "/odd-spoon.jpg",
   },
   {
     id: "odd-02",
@@ -66,6 +68,7 @@ const oddities: DemoProduct[] = [
     pricePence: 100,
     palette: "blue",
     symbol: "●",
+    image: "/ambitious-pebble.jpg",
   },
   {
     id: "odd-03",
@@ -75,6 +78,7 @@ const oddities: DemoProduct[] = [
     pricePence: 650,
     palette: "lemon",
     symbol: "◉",
+    image: "/suspicious-mug.jpg",
   },
   {
     id: "odd-04",
@@ -83,6 +87,99 @@ const oddities: DemoProduct[] = [
     description: "A fresh start, with several blank pages and absolutely no judgement.",
     pricePence: 500,
     palette: "rose",
+    symbol: "▤",
+  },
+  {
+    id: "odd-05",
+    name: "Jar of Tuesday’s weather",
+    category: "Home",
+    description: "Contains one small cloud and a forecast of damp, emotionally.",
+    pricePence: 475,
+    palette: "blue",
+    symbol: "☂",
+    image: "/tuesday-weather.jpg",
+  },
+  {
+    id: "odd-06",
+    name: "Chair for an invisible dinner guest",
+    category: "Home",
+    description: "They said they were five minutes away. That was last Thursday.",
+    pricePence: 2400,
+    palette: "green",
+    symbol: "⌂",
+    image: "/empty-chair.jpg",
+  },
+  {
+    id: "odd-07",
+    name: "Receipt for one unseen ghost",
+    category: "Paper",
+    description: "Proof of purchase. The ghost denies everything.",
+    pricePence: 125,
+    palette: "rose",
+    symbol: "▤",
+    image: "/ghost-receipt.jpg",
+  },
+  {
+    id: "odd-08",
+    name: "Key to a door that isn’t built yet",
+    category: "Home",
+    description: "Keep it somewhere safe. The door could turn up any day.",
+    pricePence: 325,
+    palette: "clay",
+    symbol: "⌘",
+  },
+  {
+    id: "odd-09",
+    name: "Pigeon-drafted city plan",
+    category: "Art",
+    description: "Excellent squares. Several notes about chips. No public transport.",
+    pricePence: 850,
+    palette: "blue",
+    symbol: "▧",
+  },
+  {
+    id: "odd-10",
+    name: "Left glove with an airtight alibi",
+    category: "Wear",
+    description: "Has never met the right glove. Claims to have been at home.",
+    pricePence: 375,
+    palette: "rose",
+    symbol: "◒",
+  },
+  {
+    id: "odd-11",
+    name: "Emergency bell for postponing meetings",
+    category: "Home",
+    description: "One ring buys you three minutes and a vague look at the ceiling.",
+    pricePence: 1100,
+    palette: "lemon",
+    symbol: "◉",
+  },
+  {
+    id: "odd-12",
+    name: "A map of the bit behind the fridge",
+    category: "Art",
+    description: "Includes two lost peas, a mystery coin and one old shopping list.",
+    pricePence: 675,
+    palette: "green",
+    symbol: "▧",
+  },
+  {
+    id: "odd-13",
+    name: "Small rock, available for comment",
+    category: "Home",
+    description: "Has strong views on the local planning application. Won’t elaborate.",
+    pricePence: 225,
+    palette: "clay",
+    symbol: "●",
+  },
+  {
+    id: "odd-14",
+    name: "A certificate saying ‘probably fine’",
+    category: "Paper",
+    description: "Official-looking enough to calm a houseplant. Not legally binding.",
+    pricePence: 250,
+    palette: "lemon",
     symbol: "▤",
   },
 ];
