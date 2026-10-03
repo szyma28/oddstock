@@ -18,10 +18,10 @@ jobs:
       API_PORT: 4000
       WEB_ORIGIN: http://localhost:5173
     steps:
-      - name: Check out repository
+      - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Set up pnpm and Node.js
+      - name: Setup Node and pnpm
         uses: pnpm/setup@v3
         with:
           runtime: node@22
@@ -29,7 +29,7 @@ jobs:
           install: false
           cache: true
 
-      - name: Install dependencies
+      - name: Install
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
@@ -38,16 +38,16 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Run unit tests
+      - name: Unit tests
         run: pnpm test
 
-      - name: Build applications
+      - name: Build
         run: pnpm build
 
-      - name: Start PostgreSQL and Kafka
+      - name: Start services
         run: pnpm infra:up
 
-      - name: Wait for infrastructure
+      - name: Wait for services
         run: |
           ready=false
           for attempt in $(seq 1 90); do
@@ -63,10 +63,10 @@ jobs:
             exit 1
           fi
 
-      - name: Create database tables
+      - name: Prepare database
         run: pnpm --filter @oddstock/api db:push
 
-      - name: Run Kafka integration tests
+      - name: Integration tests
         run: |
           set -euo pipefail
           pnpm --filter @oddstock/api dev > /tmp/oddstock-api.log 2>&1 &
@@ -89,13 +89,11 @@ jobs:
           fi
 
           if ! pnpm test:integration; then
-            echo "--- API log ---"
             cat /tmp/oddstock-api.log
-            echo "--- worker log ---"
             cat /tmp/oddstock-worker.log
             exit 1
           fi
 
-      - name: Stop PostgreSQL and Kafka
+      - name: Stop services
         if: always()
         run: pnpm infra:down
