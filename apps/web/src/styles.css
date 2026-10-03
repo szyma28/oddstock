@@ -162,8 +162,8 @@ h1 { font-size: clamp(60px, 7.4vw, 104px); font-weight: 600; line-height: .91; l
   .wrap { width: calc(100% - 32px); }
   .nav { height: 66px; }
   .wordmark { font-size: 26px; }
-  .nav-links { display: none; }
-  .nav-actions { gap: 13px; }
+  .nav-links { display: flex; gap: 12px; font-size: 11px; }
+  .nav-actions { gap: 10px; }
   .account-button, .bag-button { font-size: 11px; }
   .hero { display: flex; flex-direction: column; align-items: stretch; gap: 30px; padding-block: 34px 48px; }
   .hero-copy { padding: 0; }

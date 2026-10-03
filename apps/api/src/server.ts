@@ -11,7 +11,7 @@ import { products } from "./catalog.js";
 import { db } from "./db.js";
 import { sendToDeadLetter } from "./dead-letter.js";
 import { orderSubmittedSchema, parseKafkaEvent, paymentResultSchema } from "./events.js";
-import { createProducer, kafka } from "./kafka.js";
+import { createConsumer, createProducer } from "./kafka.js";
 import { calculateOrderTotal } from "./order-rules.js";
 
 const app = express();
@@ -208,7 +208,15 @@ async function publishOutboxBatch() {
 }
 
 async function startPaymentResultConsumer(producer: ReturnType<typeof createProducer>) {
-  const consumer = kafka.consumer({ groupId: "oddstock-api-payment-results-v1" });
+  const consumer = createConsumer("oddstock-api-payment-results-v1");
+  consumer.on(consumer.events.GROUP_JOIN, () => {
+    paymentResultsConsumerReady = true;
+    console.info(JSON.stringify({ event: "kafka_consumer_ready", topic: "marketplace.payment-results" }));
+  });
+  consumer.on(consumer.events.CRASH, ({ payload }) => {
+    paymentResultsConsumerReady = false;
+    console.error(JSON.stringify({ event: "kafka_consumer_crashed", restart: payload.restart, message: payload.error.message }));
+  });
   try {
     await consumer.connect();
     await consumer.subscribe({ topic: "marketplace.payment-results", fromBeginning: false });
@@ -231,10 +239,19 @@ async function startPaymentResultConsumer(producer: ReturnType<typeof createProd
       metrics.lastPaymentResultAt = new Date().toISOString();
       console.info(JSON.stringify({ event: "order_status_updated", orderId: event.orderId, status: event.status, eventId: event.id, requestId: (event as { requestId?: string }).requestId }));
     } catch (error) {
-      if (!(typeof error === "object" && error !== null && "code" in error && error.code === "P2002")) throw error;
-      metrics.paymentResultsDuplicateTotal += 1;
-      metrics.lastPaymentResultAt = new Date().toISOString();
-      console.info(JSON.stringify({ event: "duplicate_payment_result_ignored", eventId: event.id }));
+      if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
+        metrics.paymentResultsDuplicateTotal += 1;
+        metrics.lastPaymentResultAt = new Date().toISOString();
+        console.info(JSON.stringify({ event: "duplicate_payment_result_ignored", eventId: event.id }));
+        return;
+      }
+      if (typeof error === "object" && error !== null && "code" in error && error.code === "P2025") {
+        await sendToDeadLetter(producer, "marketplace.payment-results", partition, message, "order_not_found");
+        metrics.paymentResultsDeadLetteredTotal += 1;
+        console.error(JSON.stringify({ event: "payment_result_dead_lettered", reason: "order_not_found", orderId: event.orderId, eventId: event.id, partition, offset: message.offset }));
+        return;
+      }
+      throw error;
     }
     } });
     return consumer;
@@ -253,8 +270,6 @@ if (process.env.KAFKA_DISABLED !== "true") {
         await producer.connect();
         kafkaConsumer = await startPaymentResultConsumer(producer);
         kafkaPublisher = producer;
-        paymentResultsConsumerReady = true;
-        console.info(JSON.stringify({ event: "kafka_consumer_ready", topic: "marketplace.payment-results" }));
       } catch (error) {
         await producer.disconnect().catch(() => undefined);
         console.error(JSON.stringify({ event: "kafka_consumer_unavailable", message: error instanceof Error ? error.message : String(error) }));

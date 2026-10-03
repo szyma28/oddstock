@@ -1,10 +1,10 @@
 import "dotenv/config";
-import { createProducer, kafka } from "./kafka.js";
+import { createConsumer, createProducer } from "./kafka.js";
 import { sendToDeadLetter } from "./dead-letter.js";
 import { orderSubmittedSchema, parseKafkaEvent } from "./events.js";
 import { decideMockPayment } from "./order-rules.js";
 
-const consumer = kafka.consumer({ groupId: "oddstock-mock-payments-v1" });
+const consumer = createConsumer("oddstock-mock-payments-v1");
 const producer = createProducer();
 let orderEventsProcessedTotal = 0;
 let deadLetteredTotal = 0;

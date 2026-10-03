@@ -9,10 +9,10 @@ Oddstock is a fictional, brand-new marketplace portfolio project. Its listings a
 - PostgreSQL persistence with Prisma. Prices are looked up on the server; the browser never supplies a trusted total.
 - A transactional outbox: an order and its `OrderSubmitted` event are committed together. A relay publishes that event to Kafka, so an API restart between the DB commit and publish does not silently lose the order event.
 - A separate Kafka consumer simulates payment and publishes a result. The API consumes that result and updates the order. Event IDs make result handling idempotent; the order ID is used as the Kafka key to keep that order's messages on one partition.
-- Versioned Zod schemas validate both event types at runtime. Invalid order and payment-result messages are copied to their topic's dead-letter queue with source topic, partition, offset and validation reason.
+- Versioned Zod schemas validate both event types at runtime. Invalid events and payment results for missing orders are copied to their topic's dead-letter queue with source topic, partition, offset and reason, so a bad message does not hold up later orders.
 - Structured JSON logs around publish/consume/status transitions, plus repeatable APPROVE and DECLINE demo paths.
 - A generated request ID follows an order into both Kafka events and worker/API logs, making the asynchronous path easier to follow when debugging.
-- `/api/health` reports process liveness, `/api/ready` checks the database and payment-result consumer, and `/api/metrics` reports the outbox backlog, order counts and process-local Kafka counters.
+- `/api/health` reports process liveness, `/api/ready` checks the database and current payment-result consumer membership, and `/api/metrics` reports the outbox backlog, order counts and process-local Kafka counters.
 
 ## Start locally
 
@@ -46,7 +46,7 @@ Prerequisites: Node.js 20.19+ or 22.12+, pnpm 10+, and Docker Desktop with Compo
 
 Open http://localhost:5173. Create a demo account with any email and a password of at least 10 characters. Add a product, open the bag and place a demo order. Leave the payment decline checkbox off for an approval, or turn it on to show the declined path. The order status refreshes while the Kafka consumer is running.
 
-To stop the local data services, run `pnpm infra:down`. The named Postgres volume keeps demo records between restarts; remove it only if you intentionally want to reset the local demo data (`sh infra/docker-compose.sh down -v`).
+To stop the local data services, run `pnpm infra:down`. Named Postgres and Kafka volumes keep demo data and messages between container restarts. Remove them only if you intentionally want to reset the local demo (`sh infra/docker-compose.sh down -v`).
 
 ## Event flow
 
@@ -85,5 +85,7 @@ This exercises approved and declined order flows, duplicate payment-result deliv
 ## Security and scope notes
 
 This is a learning/demo app, not a production commerce system. Do not enter real personal information or payment details. It has local-only Compose credentials, no real payment provider, no email verification, no production secret-management, and no multi-instance session store hardening. The local Compose broker is a single node, and the outbox relay is intended to run as one API instance. The auth choices are examples for a portfolio discussion, not a security certification. Production deployment would also require a TLS-only domain, managed secrets, a deployment-appropriate CSRF strategy, operational monitoring/alerts, backup and restore testing, and a provider-hosted payment flow.
+
+The `deepmerge-ts` pnpm override replaces Prisma's pinned 7.1.5 copy with patched 8.0.2. Prisma uses this merger only while loading developer-owned config; request data never reaches it. The override can be removed once Prisma ships with a patched dependency.
 
 The project is original and does not use Miribeth names, logos, slogans or client assets.
